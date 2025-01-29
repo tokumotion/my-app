@@ -82,7 +82,15 @@ export default function DashboardPage() {
         <CreateApiKeyModal
           isOpen={isCreating}
           onClose={() => setIsCreating(false)}
-          onSubmit={createApiKey}
+          onSubmit={async (name) => {
+            const success = await createApiKey(name);
+            if (success) {
+              setIsCreating(false);
+              showNotification('API key created successfully!');
+            } else {
+              showNotification('Failed to create API key. Please try again later.');
+            }
+          }}
         />
       </div>
     </div>
