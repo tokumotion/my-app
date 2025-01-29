@@ -11,45 +11,58 @@ const supabase = createClient(
 const INACTIVITY_TIMEOUT = 30 * 60;
 
 export async function GET(request: Request) {
-  const cookieStore = cookies();
-  const apiKey = cookieStore.get('api_key')?.value;
-
-  console.log('🔑 API endpoint checking cookie:', apiKey ? 'Present' : 'Missing');
-
-  if (!apiKey) {
-    console.log('❌ No API key cookie found');
-    return NextResponse.json(
-      { error: 'Missing API key' },
-      { status: 401 }
-    );
-  }
-
+  console.log('🎯 Starting GET request validation...');
+  
   try {
-    console.log('🔄 Validating API key with Supabase...');
-    // Validate the API key against Supabase
-    const { data, error } = await supabase
-      .from('api_keys')
-      .select('*')
-      .eq('key', apiKey)
-      .single();
+    // Initialize cookie store with await
+    console.log('🔄 Initializing cookie store...');
+    const cookieStore = await cookies();
+    
+    // Access cookie value after Promise resolves
+    console.log('🔍 Accessing API key from cookies...');
+    const apiKey = cookieStore.get('api_key')?.value;
+    console.log('🔑 API key status:', apiKey ? 'Present' : 'Missing');
 
-    if (error || !data) {
-      console.log('❌ Invalid API key:', error);
+    if (!apiKey) {
+      console.log('❌ No API key cookie found');
       return NextResponse.json(
-        { error: 'Invalid API key' },
+        { error: 'Missing API key' },
         { status: 401 }
       );
     }
 
-    console.log('✅ API key validated successfully');
-    return NextResponse.json(
-      { message: 'Access granted to protected endpoint' },
-      { status: 200 }
-    );
+    try {
+      console.log('🔄 Validating API key with Supabase...');
+      const { data, error } = await supabase
+        .from('api_keys')
+        .select('*')
+        .eq('key', apiKey)
+        .single();
+
+      if (error || !data) {
+        console.log('❌ Invalid API key:', error);
+        return NextResponse.json(
+          { error: 'Invalid API key' },
+          { status: 401 }
+        );
+      }
+
+      console.log('✅ API key validated successfully');
+      return NextResponse.json(
+        { message: 'Access granted to protected endpoint' },
+        { status: 200 }
+      );
+    } catch (error) {
+      console.error('💥 Supabase validation error:', error);
+      return NextResponse.json(
+        { error: 'Server error during validation' },
+        { status: 500 }
+      );
+    }
   } catch (error) {
-    console.error('💥 Protected route error:', error);
+    console.error('💥 Cookie operation failed:', error);
     return NextResponse.json(
-      { error: 'Server error' },
+      { error: 'Server error during cookie processing' },
       { status: 500 }
     );
   }
@@ -57,39 +70,67 @@ export async function GET(request: Request) {
 
 // Add POST method to handle activity refresh
 export async function POST(request: Request) {
-  const cookieStore = cookies();
-  const apiKey = cookieStore.get('api_key')?.value;
-
-  if (!apiKey) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+  console.log('🎯 Starting activity refresh...');
+  
   try {
-    const response = NextResponse.json(
-      { message: 'Activity refreshed' },
-      { status: 200 }
-    );
+    // Initialize cookie store with await
+    console.log('🔄 Initializing cookie store for activity refresh...');
+    const cookieStore = await cookies();
+    
+    // Access cookie value after Promise resolves
+    console.log('🔍 Accessing API key for refresh...');
+    const apiKey = cookieStore.get('api_key')?.value;
+    console.log('🔑 Activity refresh - API key status:', apiKey ? 'Present' : 'Missing');
 
-    // Refresh both cookies
-    response.cookies.set('api_key', apiKey, {
-      path: '/',
-      sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: INACTIVITY_TIMEOUT,
-      httpOnly: true
-    });
+    if (!apiKey) {
+      console.log('❌ No API key found for refresh');
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
-    response.cookies.set('last_activity', Date.now().toString(), {
-      path: '/',
-      sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: INACTIVITY_TIMEOUT,
-      httpOnly: true
-    });
+    try {
+      console.log('🔄 Creating response with refreshed cookies...');
+      const response = NextResponse.json(
+        { message: 'Activity refreshed' },
+        { status: 200 }
+      );
 
-    return response;
+      // Refresh both cookies
+      console.log('🍪 Setting refreshed API key cookie...');
+      response.cookies.set('api_key', apiKey, {
+        path: '/',
+        sameSite: 'strict',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: INACTIVITY_TIMEOUT,
+        httpOnly: true
+      });
+
+      console.log('⏰ Setting refreshed activity timestamp...');
+      response.cookies.set('last_activity', Date.now().toString(), {
+        path: '/',
+        sameSite: 'strict',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: INACTIVITY_TIMEOUT,
+        httpOnly: true
+      });
+
+      console.log('✅ Activity refresh completed successfully');
+      return response;
+    } catch (error) {
+      console.error('💥 Error setting refresh cookies:', error);
+      return NextResponse.json(
+        { error: 'Server error during refresh' },
+        { status: 500 }
+      );
+    }
   } catch (error) {
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    console.error('💥 Cookie operation failed during refresh:', error);
+    return NextResponse.json(
+      { error: 'Server error during cookie processing' },
+      { status: 500 }
+    );
   }
 }
 
