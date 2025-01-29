@@ -1,44 +1,128 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import debounce from 'lodash/debounce';
+
+// Inactivity timeout in milliseconds (30 minutes)
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
+const WARNING_TIME = 5 * 60 * 1000; // Show warning 5 minutes before expiry
 
 export default function ProtectedPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [showExpiryWarning, setShowExpiryWarning] = useState(false);
 
+  // Debounced activity refresh
+  const debouncedActivityRefresh = useCallback(
+    debounce(() => {
+      console.log('🔄 Refreshing activity timestamp...');
+      fetch('/api/protected', {
+        method: 'POST',
+        credentials: 'include'
+      }).catch(error => console.error('Error updating activity:', error));
+    }, 1000), // Debounce for 1 second
+    []
+  );
+
+  // Activity tracking effect
+  useEffect(() => {
+    console.log('🎯 Setting up activity tracking...');
+    
+    let inactivityTimer: NodeJS.Timeout;
+    let warningTimer: NodeJS.Timeout;
+
+    const resetInactivityTimer = () => {
+      console.log('⏱️ Resetting inactivity timer');
+      clearTimeout(inactivityTimer);
+      clearTimeout(warningTimer);
+      setShowExpiryWarning(false);
+      
+      // Set warning timer
+      warningTimer = setTimeout(() => {
+        console.log('⚠️ Session expiring soon');
+        setShowExpiryWarning(true);
+      }, INACTIVITY_TIMEOUT - WARNING_TIME);
+
+      // Set expiry timer
+      inactivityTimer = setTimeout(() => {
+        console.log('⚠️ Session expired, redirecting...');
+        router.push('/playground');
+      }, INACTIVITY_TIMEOUT);
+
+      // Refresh activity timestamp
+      debouncedActivityRefresh();
+    };
+
+    // Set up event listeners for user activity
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    
+    activityEvents.forEach(event => {
+      window.addEventListener(event, resetInactivityTimer);
+    });
+
+    // Initial timer setup
+    resetInactivityTimer();
+
+    // Cleanup
+    return () => {
+      console.log('🧹 Cleaning up activity tracking...');
+      debouncedActivityRefresh.cancel();
+      clearTimeout(inactivityTimer);
+      clearTimeout(warningTimer);
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, resetInactivityTimer);
+      });
+    };
+  }, [router, debouncedActivityRefresh]);
+
+  // Original authorization effect - maintained as is
   useEffect(() => {
     const validateAccess = async () => {
-      const apiKey = sessionStorage.getItem('temp_api_key');
+      console.log('🔄 Starting protected page validation...');
       
-      if (!apiKey) {
-        router.push('/playground');
-        return;
-      }
-
       try {
+        const cookies = document.cookie;
+        console.log('📝 Current cookies:', cookies);
+
+        console.log('🚀 Making request to /api/protected...');
         const response = await fetch('/api/protected', {
           headers: {
-            'x-api-key': apiKey
-          }
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include'
         });
 
+        console.log('📡 API Response status:', response.status);
+
         if (response.ok) {
+          console.log('✅ Access validated successfully');
           setIsAuthorized(true);
         } else {
+          console.log('❌ Access denied, redirecting to playground');
+          try {
+            const errorData = await response.json();
+            console.log('Error details:', errorData);
+          } catch (e) {
+            console.log('No error details available');
+          }
           router.push('/playground');
         }
       } catch (error) {
+        console.error('💥 Error during validation:', error);
         router.push('/playground');
       } finally {
+        console.log('🏁 Validation process completed');
         setIsLoading(false);
       }
     };
 
+    console.log('🎬 Protected page effect triggered');
     validateAccess();
   }, [router]);
 
+  // Original loading state
   if (isLoading) {
     return (
       <div className="min-h-screen p-8 flex items-center justify-center">
@@ -47,12 +131,19 @@ export default function ProtectedPage() {
     );
   }
 
+  // Original unauthorized state
   if (!isAuthorized) {
     return null;
   }
 
+  // Original UI render
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-8 relative">
+      {showExpiryWarning && (
+        <div className="fixed top-4 right-4 bg-yellow-500 text-white px-4 py-2 rounded-md shadow-lg">
+          Session expiring soon. Move mouse or press key to extend.
+        </div>
+      )}
       <div className="max-w-6xl mx-auto">
         <div className="bg-gradient-to-r from-rose-200 via-purple-200 to-blue-200 dark:from-rose-900 dark:via-purple-900 dark:to-blue-900 rounded-lg p-8 mb-8">
           <h1 className="text-4xl font-bold mb-4">King Lear: A Modern Retelling</h1>

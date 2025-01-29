@@ -32,19 +32,33 @@ export default function PlaygroundPage() {
       });
 
       const data = await response.json();
+      console.log('Response status:', response.ok);  // Debug log
+      console.log('Response data:', data);  // Debug log
       
       if (response.ok) {
+        console.log('Setting cookie before redirect');
+        Cookies.set('api_key', apiKey, { 
+          expires: 1,
+          path: '/',
+          sameSite: 'strict',
+          secure: process.env.NODE_ENV === 'production'
+        });
+
+        // Verify cookie was set
+        const cookieCheck = Cookies.get('api_key');
+        console.log('Cookie value before redirect:', cookieCheck);
+
         showNotification('Valid API Key, redirecting to protected content...');
-        Cookies.set('api_key', apiKey, { expires: 1 });
-        setTimeout(() => {
-          router.push('/protected');
-        }, 1000);
+        
+        // Use window.location for a full page redirect
+        window.location.href = '/protected';
       } else {
         showNotification('Invalid API Key');
+        setIsLoading(false);
       }
     } catch (error) {
+      console.error('Error:', error);  // Debug log
       showNotification('Error validating API key');
-    } finally {
       setIsLoading(false);
     }
   };
