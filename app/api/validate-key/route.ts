@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     // Query the api_keys table in Supabase
     const { data, error } = await supabase
       .from('api_keys')
-      .select('*')
+      .select('key')
       .eq('key', apiKey)
       .single();
 
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     if (data) {
       // API key exists in the database
       return NextResponse.json(
-        { message: 'Valid API key', keyData: data },
+        { message: 'Valid API key' },
         { status: 200 }
       );
     } else {
