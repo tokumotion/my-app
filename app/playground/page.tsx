@@ -31,6 +31,8 @@ export default function PlaygroundPage() {
         body: JSON.stringify({ apiKey }),
       });
       
+      await response.json();
+      
       if (response.ok) {
         Cookies.set('api_key', apiKey, { 
           expires: 1,
