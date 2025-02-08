@@ -83,7 +83,7 @@ export async function POST(request: Request) {
     console.log('6. First 100 chars of README:', readmeContent.substring(0, 100));
     
     console.log('7. Calling summarizeReadme function');
-    const result = await summarizeReadme(readmeContent);
+    const result = await summarizeReadme(readmeContent, process.env.OPENAI_API_KEY!);
     console.log('8. Summary result:', result);
     
     if (!result) {
