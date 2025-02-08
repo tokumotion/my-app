@@ -24,16 +24,18 @@ const model = new ChatOpenAI({
   modelName: "gpt-4o-mini",
   temperature: 0,
   maxTokens: 500
+}).bind({
+  functions: [functionSchema],
+  function_call: { name: "summarize_repo" }  // Force it to use our schema
 });
+
+const chain = prompt.pipe(model);
 
 export async function summarizeReadme(readmeContent: string) {
   console.log('A. Starting summarizeReadme');
   console.log('B. OpenAI API Key exists:', !!process.env.OPENAI_API_KEY);
   
   try {
-    const chain = prompt.pipe(model);
-    console.log('C. Chain created successfully');
-    
     const result = await chain.invoke({
       readme_content: readmeContent
     });
