@@ -20,30 +20,41 @@ const prompt = PromptTemplate.fromTemplate(
   {readme_content}`
 );
 
-const model = new ChatOpenAI({
-  modelName: "gpt-4o-mini",
-  temperature: 0,
-  maxTokens: 500
-}).bind({
-  functions: [functionSchema],
-  function_call: { name: "summarize_repo" }  // Force it to use our schema
-});
-
-const chain = prompt.pipe(model);
-
-export async function summarizeReadme(readmeContent: string) {
+export async function summarizeReadme(readmeContent: string, openAiKey: string) {
   console.log('A. Starting summarizeReadme');
-  console.log('B. OpenAI API Key exists:', !!process.env.OPENAI_API_KEY);
+  console.log('B. OpenAI API Key exists:', !!openAiKey);
   
   try {
+    const model = new ChatOpenAI({
+      modelName: "gpt-4o-mini",
+      temperature: 0,
+      maxTokens: 500,
+      openAIApiKey: openAiKey
+    }).bind({
+      functions: [functionSchema],
+      function_call: { name: "summarize_repo" }
+    });
+
+    const chain = prompt.pipe(model);
+    console.log('C. Chain created successfully');
+    
     const result = await chain.invoke({
       readme_content: readmeContent
     });
     console.log('D. Chain invocation result:', result);
     
-    return result;
+    // Parse the function call arguments to get structured output
+    if (!result.additional_kwargs.function_call) {
+      throw new Error('Failed to get function call result');
+    }
+
+    // Extract just the parsed response
+    const parsedResponse = JSON.parse(result.additional_kwargs.function_call.arguments);
+    console.log('E. Parsed response:', parsedResponse);
+    
+    return parsedResponse;
   } catch (error) {
-    console.error('E. Error in summarizeReadme:', error);
+    console.error('F. Error in summarizeReadme:', error);
     throw error;
   }
 } 
