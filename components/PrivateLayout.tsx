@@ -1,12 +1,29 @@
 'use client';
 
-import { useAuth } from '@/hooks/useAuth';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import Sidebar from '@/app/components/Sidebar';
 
 export default function PrivateLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
-  if (!isAuthenticated) {
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace('/auth-required');
+    }
+  }, [status, router]);
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!session) {
     return null;
   }
 
