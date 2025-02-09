@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import LayoutWrapper from "./components/LayoutWrapper";
+import { Metadata } from 'next'
+import ClientLayout from '@/app/ClientLayout'
+import { Providers } from './providers'
+import './globals.css'
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -9,15 +10,17 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body className="antialiased">
-        <LayoutWrapper>
-          {children}
-        </LayoutWrapper>
+      <body className="bg-white dark:bg-gray-900">
+        <Providers>
+          <ClientLayout>
+            {children}
+          </ClientLayout>
+        </Providers>
       </body>
     </html>
   );
