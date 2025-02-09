@@ -11,6 +11,13 @@ const handler = NextAuth({
   pages: {
     signIn: "/auth/signin",
   },
+  callbacks: {
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith(`${baseUrl}/dashboards`)) return url
+      
+      return `${baseUrl}/dashboards`
+    },
+  },
 });
 
 export { handler as GET, handler as POST }; 
