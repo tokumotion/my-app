@@ -2,6 +2,9 @@ import { Metadata } from 'next'
 import ClientLayout from '@/app/ClientLayout'
 import { Providers } from './providers'
 import './globals.css'
+import { UserProvider } from './contexts/UserContext'
+import { SessionProvider } from 'next-auth/react'
+import AuthProviders from './components/Providers'
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -16,11 +19,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-white dark:bg-gray-900">
-        <Providers>
-          <ClientLayout>
-            {children}
-          </ClientLayout>
-        </Providers>
+        <AuthProviders>
+          <Providers>
+            <ClientLayout>
+              {children}
+            </ClientLayout>
+          </Providers>
+        </AuthProviders>
       </body>
     </html>
   );

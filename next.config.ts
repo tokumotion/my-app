@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: false,  // Don't ignore during builds
     */
   },
+  images: {
+    domains: [
+      'lh3.googleusercontent.com',  // Add this for Google user profile images
+    ],
+  },
 };
 
 export default nextConfig;

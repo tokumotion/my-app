@@ -3,8 +3,12 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useUser } from '../contexts/UserContext';
+import UserProfileSkeleton from './UserProfileSkeleton';
+import UserProfileError from './UserProfileError';
 
 export default function Sidebar() {
+  const { user, isLoading, error } = useUser();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
 
@@ -76,25 +80,43 @@ export default function Sidebar() {
         </nav>
 
         {/* User Profile */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-          <div className="flex items-center gap-3">
-            <Image 
-              src="/profile.jpg" 
-              alt="Profile" 
-              width={40} 
-              height={40} 
-              className="rounded-full" 
-            />
-            {!isCollapsed && (
-              <>
-                <div className="flex-1">
-                  <p className="font-medium">Miguel Tokumoto</p>
-                </div>
-                <Image src="/logout.svg" alt="Logout" width={20} height={20} className="dark:invert" />
-              </>
-            )}
+        {isLoading ? (
+          <UserProfileSkeleton />
+        ) : error ? (
+          <UserProfileError 
+            error={error} 
+            onRetry={() => {
+              // Add your retry logic here
+              window.location.reload();
+            }} 
+          />
+        ) : user ? (
+          <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+            <div className="flex items-center gap-3">
+              <Image 
+                src={user.profileImage} 
+                alt={user.name} 
+                width={40} 
+                height={40} 
+                className="rounded-full" 
+              />
+              {!isCollapsed && (
+                <>
+                  <div className="flex-1">
+                    <p className="font-medium">{user.name}</p>
+                  </div>
+                  <Image 
+                    src="/logout.svg" 
+                    alt="Logout" 
+                    width={20} 
+                    height={20} 
+                    className="dark:invert" 
+                  />
+                </>
+              )}
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
 
       {/* Spacer div to push content to the right */}
