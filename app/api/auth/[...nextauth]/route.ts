@@ -13,9 +13,17 @@ const handler = NextAuth({
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
-      if (url.startsWith(`${baseUrl}/dashboards`)) return url
+      // Check if this is a sign-out redirect
+      if (url.includes('signout')) {
+        return baseUrl;
+      }
       
-      return `${baseUrl}/dashboards`
+      // For sign-in and other cases, redirect to dashboards
+      if (url.startsWith(baseUrl)) {
+        return `${baseUrl}/dashboards`;
+      }
+      
+      return url;
     },
   },
 });

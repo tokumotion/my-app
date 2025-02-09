@@ -6,11 +6,24 @@ import { useState } from 'react';
 import { useUser } from '../contexts/UserContext';
 import UserProfileSkeleton from './UserProfileSkeleton';
 import UserProfileError from './UserProfileError';
+import { signOut } from 'next-auth/react';
 
 export default function Sidebar() {
   const { user, isLoading, error } = useUser();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut({ 
+        callbackUrl: '/signout',  // Special flag for our redirect callback
+        redirect: true 
+      });
+    } catch (error) {
+      console.error('Sign out error:', error);
+      window.location.href = '/';
+    }
+  };
 
   return (
     <>
@@ -105,13 +118,18 @@ export default function Sidebar() {
                   <div className="flex-1">
                     <p className="font-medium">{user.name}</p>
                   </div>
-                  <Image 
-                    src="/logout.svg" 
-                    alt="Logout" 
-                    width={20} 
-                    height={20} 
-                    className="dark:invert" 
-                  />
+                  <button
+                    onClick={handleSignOut}
+                    className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <Image 
+                      src="/logout.svg" 
+                      alt="Logout" 
+                      width={20} 
+                      height={20} 
+                      className="dark:invert" 
+                    />
+                  </button>
                 </>
               )}
             </div>
