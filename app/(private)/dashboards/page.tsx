@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useApiKeys } from '../hooks/useApiKeys';
-import PlanSection from '../components/dashboard/PlanSection';
-import ApiKeysTable from '../components/dashboard/ApiKeysTable';
-import CreateApiKeyModal from '../components/CreateApiKeyModal';
-import Toast from '../components/Toast';
-import ContactSupport from '../components/dashboard/ContactSupport';
+import { useApiKeys } from '@/app/hooks/useApiKeys';
+import PlanSection from '@/app/components/dashboard/PlanSection';
+import ApiKeysTable from '@/app/components/dashboard/ApiKeysTable';
+import CreateApiKeyModal from '@/app/components/CreateApiKeyModal';
+import Toast from '@/app/components/Toast';
+import ContactSupport from '@/app/components/dashboard/ContactSupport';
 
 export default function DashboardPage() {
   const {

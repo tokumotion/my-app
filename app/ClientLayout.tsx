@@ -9,7 +9,7 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isPrivatePath = pathname?.startsWith('/private');
+  const isPrivatePath = pathname?.startsWith('/(private)') || pathname?.includes('/private/');
 
   if (isPrivatePath) {
     return <PrivateLayout>{children}</PrivateLayout>;

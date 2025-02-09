@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Toast from '../components/Toast';
+import Toast from '@/app/components/Toast';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 
