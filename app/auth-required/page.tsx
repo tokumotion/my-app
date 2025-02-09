@@ -3,8 +3,9 @@
 import { signIn } from 'next-auth/react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function AuthRequiredPage() {
+function AuthContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl');
@@ -53,5 +54,13 @@ export default function AuthRequiredPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AuthRequiredPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthContent />
+    </Suspense>
   );
 } 
