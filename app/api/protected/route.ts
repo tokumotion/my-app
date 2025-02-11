@@ -1,68 +1,48 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { createServerSupabaseClient } from '@/lib/supabase';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../auth/[...nextauth]/route';
 
 // 30 minutes in seconds
 const INACTIVITY_TIMEOUT = 30 * 60;
 
-export async function GET(request: Request) {
-  console.log('🎯 Starting GET request validation...');
-  
+export async function GET() {
   try {
-    // Initialize cookie store with await
-    console.log('🔄 Initializing cookie store...');
-    const cookieStore = await cookies();
+    // Get the session with the Supabase access token
+    const session = await getServerSession(authOptions);
     
-    // Access cookie value after Promise resolves
-    console.log('🔍 Accessing API key from cookies...');
-    const apiKey = cookieStore.get('api_key')?.value;
-    console.log('🔑 API key status:', apiKey ? 'Present' : 'Missing');
-
-    if (!apiKey) {
-      console.log('❌ No API key cookie found');
+    if (!session?.supabaseAccessToken) {
       return NextResponse.json(
-        { error: 'Missing API key' },
+        { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    try {
-      console.log('🔄 Validating API key with Supabase...');
-      const { data, error } = await supabase
-        .from('api_keys')
-        .select('*')
-        .eq('key', apiKey)
-        .single();
+    // Create Supabase client with auth context
+    const supabase = createServerSupabaseClient();
+    
+    // Use the client to make authenticated requests
+    const { data, error } = await supabase
+      .from('next_auth.users')  // Note the schema prefix
+      .select('*')
+      .single();
 
-      if (error || !data) {
-        console.log('❌ Invalid API key:', error);
-        return NextResponse.json(
-          { error: 'Invalid API key' },
-          { status: 401 }
-        );
-      }
-
-      console.log('✅ API key validated successfully');
+    if (error) {
+      console.error('Supabase error:', error);
       return NextResponse.json(
-        { message: 'Access granted to protected endpoint' },
-        { status: 200 }
-      );
-    } catch (error) {
-      console.error('💥 Supabase validation error:', error);
-      return NextResponse.json(
-        { error: 'Server error during validation' },
+        { error: 'Database error' },
         { status: 500 }
       );
     }
-  } catch (error) {
-    console.error('💥 Cookie operation failed:', error);
+
     return NextResponse.json(
-      { error: 'Server error during cookie processing' },
+      { message: 'Access granted', user: data },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Server error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
