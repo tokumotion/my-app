@@ -9,21 +9,28 @@ export const authOptions: NextAuthOptions = {
     url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     secret: process.env.SUPABASE_SERVICE_ROLE_KEY!,
   }),
+  secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
+  jwt: {
+    // Explicitly specify the encryption/decryption settings
+    secret: process.env.NEXTAUTH_SECRET,
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+  },
   callbacks: {
-    async session({ session, user }) {
-      const signingSecret = process.env.SUPABASE_JWT_SECRET
-      if (signingSecret) {
-        const payload = {
-          aud: 'authenticated',
-          exp: Math.floor(new Date(session.expires).getTime() / 1000),
-          sub: user.id,
-          email: user.email,
-          role: 'authenticated',
-        }
-        session.supabaseAccessToken = jwt.sign(payload, signingSecret)
+    async session({ session, token }) {
+      if (token && session.user) {
+        session.user.id = token.sub!
       }
-      session.user.id = user.id
       return session
+    },
+    async jwt({ token, user }) {
+      if (user) {
+        token.sub = user.id
+      }
+      return token
     },
     async redirect({ url, baseUrl }) {
       // Check if this is a sign-out redirect

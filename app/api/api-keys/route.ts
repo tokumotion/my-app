@@ -84,7 +84,28 @@ export async function GET() {
 export async function POST(request: Request) {
   console.log('🎯 Starting API key creation...');
   
+  // Log all cookies for debugging
+  const cookieStore = await cookies()
+  console.log('Available cookies:', cookieStore.getAll())
+  
   try {
+    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    
+    console.log('Session check result:', {
+      hasSession: !!session,
+      authError: authError || 'none',
+      userId: session?.user?.id || 'none'
+    });
+
+    if (authError || !session) {
+      console.log('🔒 User not authenticated');
+      return NextResponse.json({
+        error: 'Authentication required',
+        code: 'AUTH_REQUIRED',
+        redirectUrl: '/auth/signin',
+      }, { status: 401 });
+    }
+
     const { name } = await request.json();
     console.log('📝 Received key name:', name);
     
@@ -93,7 +114,7 @@ export async function POST(request: Request) {
 
     console.log('🔄 Attempting to insert into next_auth.api_keys...');
     const { data, error } = await supabase
-      .from('next_auth.api_keys')
+      .from('api_keys')
       .insert([{ name, key }])
       .select()
       .single();
@@ -118,13 +139,16 @@ export async function POST(request: Request) {
       message: error instanceof Error ? error.message : 'Unknown error'
     });
     
-    return NextResponse.json(
-      { 
-        error: 'Failed to create API key',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    // Enhanced error response with authentication-specific handling
+    const errorResponse = {
+      error: 'Failed to create API key',
+      code: error instanceof Error && 'code' in error ? error.code : 'UNKNOWN_ERROR',
+      details: error instanceof Error ? error.message : 'Unknown error',
+      isAuthError: error instanceof Error && 'code' in error && error.code === '42501',
+      redirectUrl: '/auth/signin'
+    };
+    
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }
 
