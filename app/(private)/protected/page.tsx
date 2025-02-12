@@ -80,6 +80,13 @@ export default function ProtectedPage() {
   // Original authorization effect - maintained as is
   useEffect(() => {
     const validateAccess = async () => {
+      console.log('🔐 Auth Cookie State:', {
+        timestamp: new Date().toISOString(),
+        allCookies: document.cookie.split(';').map(c => c.trim().split('=')[0]),
+        hasSupabaseCookies: document.cookie.includes('supabase'),
+        hasNextAuthCookies: document.cookie.includes('next-auth')
+      });
+      
       console.log('🔄 Starting protected page validation...');
       
       try {

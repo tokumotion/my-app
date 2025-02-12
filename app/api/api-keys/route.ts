@@ -84,19 +84,10 @@ export async function GET() {
 export async function POST(request: Request) {
   console.log('🎯 Starting API key creation...');
   
-  // Log all cookies for debugging
-  const cookieStore = await cookies()
-  console.log('Available cookies:', cookieStore.getAll())
-  
   try {
+    // Add authentication check
     const { data: { session }, error: authError } = await supabase.auth.getSession();
     
-    console.log('Session check result:', {
-      hasSession: !!session,
-      authError: authError || 'none',
-      userId: session?.user?.id || 'none'
-    });
-
     if (authError || !session) {
       console.log('🔒 User not authenticated');
       return NextResponse.json({

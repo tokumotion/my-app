@@ -5,7 +5,15 @@ export default withAuth({
     signIn: "/auth/signin",
   },
   callbacks: {
-    authorized: ({ token }) => !!token
+    authorized: ({ token, req }) => {
+      console.log('🍪 Middleware Cookies:', {
+        timestamp: new Date().toISOString(),
+        hasCookies: !!req.cookies,
+        cookieNames: req.cookies.getAll().map(c => c.name),
+        hasSupabaseCookies: req.cookies.getAll().some(c => c.name.includes('supabase'))
+      });
+      return !!token;
+    }
   },
 });
 

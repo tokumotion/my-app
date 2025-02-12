@@ -16,7 +16,7 @@ export const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
     db: {
-      schema: DB_SCHEMAS.AUTH
+      schema: "next_auth"
     }
   }
 )
@@ -24,6 +24,12 @@ export const supabase = createClient(
 // Server-side Supabase client with auth context
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies()
+  
+  console.log('🔧 Creating Supabase client with config:', {
+    hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    hasAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    cookieCount: cookieStore.getAll().length
+  });
   
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
