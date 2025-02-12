@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { createHash } from 'crypto';
+import { createServerSupabaseClient } from '@/lib/supabase';
+import { DB_TABLES } from '@/lib/schema'
+import { createServerClient, Cookie } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 // Helper to generate API key
 function generateApiKey(): string {
@@ -14,20 +18,63 @@ function generateApiKey(): string {
 
 // GET: Fetch API keys
 export async function GET() {
+  const cookieStore = await cookies()
+  
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet: Cookie[]) {
+          const response = NextResponse.next()
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options)
+          })
+          return response
+        }
+      }
+    }
+  )
+  
+  console.log('🎯 Starting API keys fetch...');
+  
   try {
-    const { data: apiKeys, error } = await supabase
+    console.log('🔄 Attempting to fetch from next_auth.api_keys...');
+    const { data, error } = await supabase
       .from('api_keys')
       .select('*')
-      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('💥 Supabase error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        schema: 'next_auth'
+      });
+      throw error;
+    }
 
-    return NextResponse.json({ apiKeys });
+    console.log(`✅ Successfully fetched ${data?.length || 0} API keys`);
+    return NextResponse.json(data);
+    
   } catch (error) {
-    console.error('Error fetching API keys:', error);
+    console.error('🚨 Error fetching API keys:', {
+      error,
+      type: error instanceof Error ? error.constructor.name : typeof error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      schema: 'next_auth'
+    });
+    
     return NextResponse.json(
-      { error: 'Failed to fetch API keys' },
+      { 
+        error: 'Failed to fetch API keys',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
@@ -35,23 +82,47 @@ export async function GET() {
 
 // POST: Create new API key
 export async function POST(request: Request) {
+  console.log('🎯 Starting API key creation...');
+  
   try {
     const { name } = await request.json();
+    console.log('📝 Received key name:', name);
+    
     const key = generateApiKey();
+    console.log('🔑 Generated API key');
 
+    console.log('🔄 Attempting to insert into next_auth.api_keys...');
     const { data, error } = await supabase
-      .from('api_keys')
+      .from('next_auth.api_keys')
       .insert([{ name, key }])
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('💥 Supabase error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      throw error;
+    }
 
+    console.log('✅ API key created successfully');
     return NextResponse.json({ apiKey: data });
+    
   } catch (error) {
-    console.error('Error creating API key:', error);
+    console.error('🚨 Error in POST /api/api-keys:', {
+      error,
+      type: error instanceof Error ? error.constructor.name : typeof error,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+    
     return NextResponse.json(
-      { error: 'Failed to create API key' },
+      { 
+        error: 'Failed to create API key',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
@@ -59,29 +130,40 @@ export async function POST(request: Request) {
 
 // DELETE: Delete API key
 export async function DELETE(request: Request) {
+  console.log('🎯 Starting API key deletion...');
+  
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id) {
+      console.log('❌ No ID provided for deletion');
       return NextResponse.json(
-        { error: 'API key ID is required' },
+        { error: 'ID is required' },
         { status: 400 }
       );
     }
 
     const { error } = await supabase
-      .from('api_keys')
+      .from(DB_TABLES.API_KEYS.fullPath)
       .update({ deleted_at: new Date().toISOString() })
       .eq('id', id);
 
-    if (error) throw error;
+    if (error) {
+      console.error('💥 Error deleting API key:', error);
+      return NextResponse.json(
+        { error: 'Failed to delete API key' },
+        { status: 500 }
+      );
+    }
 
-    return NextResponse.json({ success: true });
+    console.log('✅ API key deleted successfully');
+    return NextResponse.json({ message: 'API key deleted successfully' });
+    
   } catch (error) {
-    console.error('Error deleting API key:', error);
+    console.error('🚨 Error in DELETE handler:', error);
     return NextResponse.json(
-      { error: 'Failed to delete API key' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

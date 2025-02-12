@@ -1,40 +1,53 @@
 import { createClient } from '@supabase/supabase-js'
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { DB_SCHEMAS } from './schema'
+import { RequestCookie } from 'next/dist/compiled/@edge-runtime/cookies'
 
-// Client-side Supabase client
+type Cookie = {
+  name: string
+  value: string
+  options: CookieOptions
+}
+
+// Client-side Supabase client with schema configuration
 export const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    db: {
+      schema: DB_SCHEMAS.AUTH
+    }
+  }
 )
 
 // Server-side Supabase client with auth context
-export function createServerSupabaseClient() {
-  const cookieStore = cookies()
+export async function createServerSupabaseClient() {
+  const cookieStore = await cookies()
   
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value
+        getAll() {
+          const cookieList = cookieStore.getAll()
+          return cookieList.map((cookie: RequestCookie): Cookie => ({
+            name: cookie.name,
+            value: cookie.value,
+            options: {
+              httpOnly: true,
+              sameSite: 'lax',
+              path: '/'
+            }
+          }))
         },
-        set(name: string, value: string, options: any) {
-          try {
-            cookieStore.set({ name, value, ...options })
-          } catch (error) {
-            // Handle cookie errors
-          }
-        },
-        remove(name: string, options: any) {
-          try {
-            cookieStore.set({ name, value: '', ...options })
-          } catch (error) {
-            // Handle cookie errors
-          }
-        },
-      },
+        setAll(cookies: Cookie[]) {
+          cookies.forEach(cookie => {
+            cookieStore.set(cookie.name, cookie.value, cookie.options)
+          })
+        }
+      }
     }
   )
 } 

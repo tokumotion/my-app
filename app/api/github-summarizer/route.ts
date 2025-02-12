@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { summarizeReadme } from '@/app/utils/chain';
+import { DB_TABLES } from '@/lib/schema';
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -18,9 +19,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // Query the api_keys table in Supabase
+    // Query using standardized schema reference
     const { data, error } = await supabase
-      .from('api_keys')
+      .from(DB_TABLES.API_KEYS.fullPath)
       .select('key')
       .eq('key', apiKey)
       .single();
